@@ -1,11 +1,12 @@
 from credentials import OPENAI_API_KEY
 import requests
+import os
 
 OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 REQUEST_METHOD = "POST"
 MODEL = "gpt-4-turbo"
 
-def prompt_model(prompt: str) -> str:
+def prompt_model(prompt: str):
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
@@ -27,7 +28,7 @@ def prompt_model(prompt: str) -> str:
     else:
         print(f"Error: {response.status_code}")
 
-def summarize_key_files(data) -> str:
+def summarize_key_files(data):
     prompt = (
         "You are summarizing the purpose and content of code files in a repository.\n"
         "- Identify important files and their roles\n"
@@ -42,7 +43,7 @@ def summarize_key_files(data) -> str:
     summary = prompt_model(prompt)
     return summary
 
-def determine_relationships(data) -> str:
+def determine_relationships(data):
     prompt = (
         "Based on the summary of files below, infer the relationships between modules, components, or infrastructure.\n"
         "- Output as a bullet list of 'A depends on B' style\n"
@@ -56,7 +57,7 @@ def determine_relationships(data) -> str:
     relationships = prompt_model(prompt)
     return relationships
 
-def output_mermaid(data: list[str]) -> str:
+def output_mermaid(data):
     input = ""
     for str in data:
         input += str
@@ -67,23 +68,56 @@ def output_mermaid(data: list[str]) -> str:
         
     prompt = (
         "Generate a Mermaid diagram from the following module information and relationships.\n"
-        "- Emphasize correct syntax on the Mermaid diagram"
-        "- Make sure that every piece of the summary is accounted for in the graph, its important to be thorough"
-        "- Use 'graph TD' format\n"
-        "- Do not include styling or extra comments\n"
-        "- Use subgraphs only if distinct groups are apparent\n\n"
-        "- Output only the code block (example below):\n\n"
+        "- ONLY use correct syntax on the Mermaid diagram\n"
+        "- Make sure that every piece of the summary is accounted for in the graph, it's important to be thorough\n"
+        "- Determine the best graph type based on the format\n"
+        "- Use subgraphs, classes, and labels where relevant\n"
+        "- When referencing functions, you must avoid using () as that will give a syntax error. Omit that.\n"
+        "- Class definition CSVs cannot include a space between the CSV items. Omit those."
+        "- Output only the code block\n"
+        "\n"
+        "Available MermaidJS themes:\n"
+        '["default", "forest", "dark", "neutral", "base", "null"]\n'
+        "\n"
+        "Available arrow types:\n"
+        '["-->", "<--", "<-->", "---", "==>", "===", "-.->", "x--", "o--"]\n'
+        "\n"
+        "Here is an example of MermaidJS syntax for a complex diagram:\n\n"
         '''```mermaid
+        %%{init: {"theme": "forest", "themeVariables": {"primaryColor": "#e0f7e5","primaryTextColor": "#333"}}}%%
         graph TD
-        A[App Server] --> B[API Gateway]
-        B --> C[Database]
-        subgraph Frontend
-            A
+        subgraph "Frontend"
+            FE[Browser]
+            FE2((Mobile App))
         end
-        subgraph Backend
-            B
-            C
+
+        subgraph "Backend Services"
+            API["API Gateway"]
+            Auth[Authentication Service]
+            Users[User Service]
+            DB[(User Database)]
         end
+
+        subgraph "Infrastructure"
+            LB[Load Balancer]
+            CDN
+        end
+
+        %% Relationships
+        FE -->|HTTPS| LB --> API
+        FE2 -->|HTTPS| LB
+        API --> Auth
+        API --> Users
+        Auth -.->|Token| Users
+        Users --> DB
+        CDN ==> FE
+        CDN ==> FE2
+
+        %% Styling with classes
+        classDef infra fill:#f4e1d2,stroke:#333,color:#333;
+        classDef svc fill:#d1e0f4,stroke:#333,color:#333;
+        class LB,CDN infra
+        class API,Auth,Users,DB svc
         '''
         "```"
         f"\n\nRelationships:\n{relationships}"
@@ -92,9 +126,26 @@ def output_mermaid(data: list[str]) -> str:
     mermaid = prompt_model(prompt)
     return mermaid
 
+def get_file_data(folder_path: str) -> str:
+    file_data = ""
+
+    for root, dirs, files in os.walk(folder_path):
+        for filename in files:
+            if filename.endswith((".py", ".tf")):  # optional: filter to relevant files
+                file_path = os.path.join(root, filename)
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        file_data += f"\n--- {file_path} ---\n"
+                        file_data += f.read()
+                except Exception as e:
+                    print(f"Error reading {file_path}: {e}")
+
+    return file_data
+
 if __name__ == "__main__":
-    with open("samples/main.tf", "r") as file:
-        file_data = file.read()
+    sample_project = "./samples/python"
+    file_data = get_file_data(sample_project)
+
     key_files_summary = summarize_key_files(file_data)
     print(key_files_summary)
     relationships = determine_relationships(key_files_summary)
