@@ -3,8 +3,7 @@ import requests
 import os
 
 OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
-REQUEST_METHOD = "POST"
-MODEL = "gpt-4-turbo"
+OPENAI_MODEL = "o4-mini"
 
 def prompt_model(prompt: str):
     headers = {
@@ -12,7 +11,7 @@ def prompt_model(prompt: str):
         "Content-Type": "application/json"
     }
     data = {
-        "model": MODEL,
+        "model": OPENAI_MODEL,
         "input": prompt
     }
 
@@ -73,7 +72,8 @@ def output_mermaid(data):
         "- Determine the best graph type based on the format\n"
         "- Use subgraphs, classes, and labels where relevant\n"
         "- When referencing functions, you must avoid using () as that will give a syntax error. Omit that.\n"
-        "- Class definition CSVs cannot include a space between the CSV items. Omit those."
+        "- Class definition CSVs cannot include a space between the CSV items. Omit those.\n"
+        "- Use styling that is easy to read and make sure to label arrows with some detail about the relationship between entities\n"
         "- Output only the code block\n"
         "\n"
         "Available MermaidJS themes:\n"
