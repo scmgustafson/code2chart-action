@@ -1,9 +1,18 @@
 from credentials import OPENAI_API_KEY
+
+import logging
 import requests
 import os
+from itertools import islice
 
 OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 OPENAI_MODEL = "o4-mini"
+#OPENAI_MODEL = "gpt-4-turbo"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
 def prompt_model(prompt: str):
     headers = {
@@ -23,13 +32,16 @@ def prompt_model(prompt: str):
                 for item in block.get("content", []):
                     if item.get("type") == "output_text":
                         return item.get("text")
-        return "[No output_text found]"
+        logging.error("No output_text found")
+        return None
     else:
-        print(f"Error: {response.status_code}")
+        logging.error(f"Error occured. Status code: {response.status_code}")
+        logging.error(response.json())
 
 def summarize_key_files(data):
     prompt = (
-        "You are summarizing the purpose and content of code files in a repository.\n"
+        "You are summarizing the purpose and content of code files in a repository. You will be given them in chunks of N files.\n"
+        "- Provide the output in JSON so that another LLM can utilize it and it is token efficient.\n"
         "- Identify important files and their roles\n"
         "- Each element should be labeled with whatever name or ID can be pulled from the source files\n"
         "- Mention key languages, frameworks, or tools used\n"
@@ -42,6 +54,42 @@ def summarize_key_files(data):
     summary = prompt_model(prompt)
     return summary
 
+# def summarize_file(file_path: str, file_content: str) -> str:
+#     prompt = (
+#         f"You are summarizing the purpose and content of the following code file:\n"
+#         f"File: {file_path}\n"
+#         f"---\n"
+#         f"{file_content}\n"
+#         "\n"
+#         "- Identify the file's role\n"
+#         "- Mention key languages, frameworks, or tools used\n"
+#         "- Output as a bullet list\n"
+#         "- Include a header to describe your output\n"
+#     )
+#     return prompt_model(prompt)
+
+def chunk_and_summarize_files(file_data_map, files_per_chunk=5):
+    """
+    Chunks the file_data_map into groups of files_per_chunk, summarizes each chunk,
+    and returns a dict mapping chunk index to summary.
+    """
+
+    def chunk_dict(data, size):
+        it = iter(data.items())
+        for i in range(0, len(data), size):
+            yield dict(islice(it, size))
+
+    chunked_summaries = {}
+    total_chunks = (len(file_data_map) + files_per_chunk - 1) // files_per_chunk
+    for idx, chunk in enumerate(chunk_dict(file_data_map, files_per_chunk), start=1):
+        logging.info(f"Processing chunk {idx} of {total_chunks}")
+        chunk_prompt = ""
+        for file_path, file_content in chunk.items():
+            chunk_prompt += f"\n--- {file_path} ---\n{file_content}\n"
+        summary = summarize_key_files(chunk_prompt)
+        chunked_summaries[idx - 1] = summary
+    return chunked_summaries
+
 def determine_relationships(data):
     prompt = (
         "Based on the summary of files below, infer the relationships between modules, components, or infrastructure.\n"
@@ -52,18 +100,21 @@ def determine_relationships(data):
         "\n"
         f"{data}"
     )
+
+    logging.info("Determining relationships between processed chunks/files")
     
     relationships = prompt_model(prompt)
     return relationships
 
 def output_mermaid(data):
     input = ""
-    for str in data:
-        input += str
-        input += '\n'
+    for dict in data:
+        input += str(dict)
+        input += "\n---\n"
 
-    print("@@@@@@@@@@@@ Mermaid Input @@@@@@@@@@@@")
-    print(input)
+    logging.debug("\n----------- Start Mermaid Prompt Input -----------")
+    logging.debug(input)
+    logging.debug("----------- End Mermaid Prompt Input -----------\n")
         
     prompt = (
         "Generate a Mermaid diagram from the following module information and relationships.\n"
@@ -84,74 +135,95 @@ def output_mermaid(data):
         "\n"
         "Here is an example of MermaidJS syntax for a complex diagram:\n\n"
         '''```mermaid
-        %%{init: {"theme": "forest", "themeVariables": {"primaryColor": "#e0f7e5","primaryTextColor": "#333"}}}%%
-        graph TD
-        subgraph "Frontend"
-            FE[Browser]
-            FE2((Mobile App))
-        end
+            %%{init: {"theme": "dark", "themeVariables": {"primaryColor": "#e8f4fd","edgeLabelBackground":"#ffffff"}}}%%
+            graph TD
+            subgraph "samples/python"
+                MP[samples/python/main.py]
+                subgraph "app"
+                RT[samples/python/app/routes.py]
+                end
+                subgraph "services"
+                US[samples/python/services/user_service.py]
+                end
+                subgraph "utils"
+                FM[samples/python/utils/formatter.py]
+                end
+            end
 
-        subgraph "Backend Services"
-            API["API Gateway"]
-            Auth[Authentication Service]
-            Users[User Service]
-            DB[(User Database)]
-        end
+            MP -->|imports routes.py| RT
+            RT -->|calls user_service.py| US
+            US -->|uses formatter.py| FM
 
-        subgraph "Infrastructure"
-            LB[Load Balancer]
-            CDN
-        end
-
-        %% Relationships
-        FE -->|HTTPS| LB --> API
-        FE2 -->|HTTPS| LB
-        API --> Auth
-        API --> Users
-        Auth -.->|Token| Users
-        Users --> DB
-        CDN ==> FE
-        CDN ==> FE2
-
-        %% Styling with classes
-        classDef infra fill:#f4e1d2,stroke:#333,color:#333;
-        classDef svc fill:#d1e0f4,stroke:#333,color:#333;
-        class LB,CDN infra
-        class API,Auth,Users,DB svc
+            classDef file fill:#d5f5e3,stroke:#333,color:#333
+            class MP,RT,US,FM file
+            ```
         '''
-        "```"
-        f"\n\nRelationships:\n{relationships}"
+        f"\n\Data to generate Mermaid from:\n{data}"
     )
 
+    logging.info("Prompting for Mermaid")
     mermaid = prompt_model(prompt)
     return mermaid
 
-def get_file_data(folder_path: str) -> str:
-    file_data = ""
+# def get_file_data(folder_path: str) -> str:
+#     file_data = ""
+#     ignore_patterns = (".git", "node_modules", "public", ".next", "__tests__", "README.md", "yarn.lock", ".DS_Store", ".env", "__pycache__")
 
+#     for root, dirs, files in os.walk(folder_path):
+#         # Remove ignored directories in-place
+#         dirs[:] = [d for d in dirs if not any(pattern in d for pattern in ignore_patterns)]
+#         for filename in files:
+#             if any(pattern in filename for pattern in ignore_patterns):
+#                 continue
+#             file_path = os.path.join(root, filename)
+#             try:
+#                 with open(file_path, "r", encoding="utf-8") as f:
+#                     file_data += f"\n--- {file_path} ---\n"
+#                     file_data += f.read()
+#             except Exception as e:
+#                 print(f"Error reading {file_path}: {e}")
+
+#     return file_data
+
+def get_file_data_map(folder_path: str):
+    logging.info(f"Processing directory: {folder_path}")
+    file_data_map = {}
+    ignore_patterns = (".git", "node_modules", "public", ".next", "__tests__", "README.md", "yarn.lock", ".DS_Store", ".env", "__pycache__", "lock")
+
+    # Traverse the target directory
     for root, dirs, files in os.walk(folder_path):
+        # Ignore any directories that match the ignore patterns by reprocessing directory list
+        dirs[:] = [d for d in dirs if not any(pattern in d for pattern in ignore_patterns)]
         for filename in files:
-            if filename.endswith((".py", ".tf")):  # optional: filter to relevant files
-                file_path = os.path.join(root, filename)
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        file_data += f"\n--- {file_path} ---\n"
-                        file_data += f.read()
-                except Exception as e:
-                    print(f"Error reading {file_path}: {e}")
-
-    return file_data
+            # Pass on files that match the pattern
+            if any(pattern in filename for pattern in ignore_patterns):
+                continue
+            file_path = os.path.join(root, filename)
+            # Read in the contents of the file and add it to the file_data_map
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    file_data_map[file_path] = f.read()
+            except Exception as e:
+                logging.error(f"Error reading {file_path}: {e}")
+    return file_data_map
 
 if __name__ == "__main__":
-    sample_project = "./samples/python"
-    file_data = get_file_data(sample_project)
+    terraform_project = "./samples/terraform"
+    python_project = "./samples/python"
+    nextjs_project = "./samples/saas-starter"
 
-    key_files_summary = summarize_key_files(file_data)
-    print(key_files_summary)
-    relationships = determine_relationships(key_files_summary)
-    print(relationships)
-    output = output_mermaid([key_files_summary, relationships])
-    print(output)
+    file_data_map = get_file_data_map(python_project)
+    files_per_chunk = 5
+
+    summaries = chunk_and_summarize_files(file_data_map, files_per_chunk)
+    relationships = determine_relationships(summaries)
+    mermaid_output = output_mermaid([summaries, relationships])
 
     with open("MERMAID.md", "w+") as file:
-        file.write(output)
+        file.write(str(mermaid_output))
+
+    #TODO add logging
+    #TODO add CLI args like src directory and output file using argparse
+    #TODO if a README.MD is available, append the mermaid with a header
+    #TODO make API key paramertized so it can read from GitHub for workflow
+    #TODO create workflow file
