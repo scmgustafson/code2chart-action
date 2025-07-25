@@ -1,8 +1,10 @@
-from credentials import OPENAI_API_KEY
+import credentials
+import config
 
-import logging
-import requests
 import os
+import requests
+import logging
+import argparse
 from itertools import islice
 
 OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
@@ -14,9 +16,18 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="descriptio here")
+
+    parser.add_argument("--input-dir", required=True, help="The directory to be ingested by the LLM and represented with MermaidJS")
+    parser.add_argument("--output-file", default="README.md", help="The name/location of the MermaidJS markdown output file." \
+    "Default appends to README.md")
+
+    return parser.parse_args()
+
 def prompt_model(prompt: str):
     headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Authorization": f"Bearer {credentials.OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
     data = {
@@ -102,8 +113,8 @@ def determine_relationships(data):
     )
 
     logging.info("Determining relationships between processed chunks/files")
-    
     relationships = prompt_model(prompt)
+
     return relationships
 
 def output_mermaid(data):
@@ -163,6 +174,8 @@ def output_mermaid(data):
 
     logging.info("Prompting for Mermaid")
     mermaid = prompt_model(prompt)
+    logging.debug(mermaid)
+
     return mermaid
 
 # def get_file_data(folder_path: str) -> str:
@@ -188,7 +201,7 @@ def output_mermaid(data):
 def get_file_data_map(folder_path: str):
     logging.info(f"Processing directory: {folder_path}")
     file_data_map = {}
-    ignore_patterns = (".git", "node_modules", "public", ".next", "__tests__", "README.md", "yarn.lock", ".DS_Store", ".env", "__pycache__", "lock")
+    ignore_patterns = ("venv", "samples", "favicon", ".git", "node_modules", "public", ".next", "__tests__", "README.md", "yarn.lock", ".DS_Store", ".env", "__pycache__", "lock")
 
     # Traverse the target directory
     for root, dirs, files in os.walk(folder_path):
@@ -208,22 +221,33 @@ def get_file_data_map(folder_path: str):
     return file_data_map
 
 if __name__ == "__main__":
-    terraform_project = "./samples/terraform"
-    python_project = "./samples/python"
-    nextjs_project = "./samples/saas-starter"
+    # terraform_project = "./samples/terraform"
+    # python_project = "./samples/python"
+    # # below costs 10 cents per run, wtf
+    # nextjs_project = "./samples/saas-starter"
 
-    file_data_map = get_file_data_map(python_project)
-    files_per_chunk = 5
+    # Parse CLI arguments
+    args = parse_args()
+    input_directory = args.input_dir
+    destination_file = args.output_file
 
-    summaries = chunk_and_summarize_files(file_data_map, files_per_chunk)
+    # Main function calls to GPT
+    file_data_map = get_file_data_map(input_directory)
+    summaries = chunk_and_summarize_files(file_data_map, config.FILES_PER_CHUNK)
     relationships = determine_relationships(summaries)
     mermaid_output = output_mermaid([summaries, relationships])
 
-    with open("MERMAID.md", "w+") as file:
-        file.write(str(mermaid_output))
+    logging.info(f"Outputting mermaid to {destination_file}")
+    if os.path.exists("README.md") and destination_file == "README.md":
+        with open(destination_file, "a") as file:
+            file.write("## MermaidJS Diagram - Generated via Automation \n")
+            file.write(str(mermaid_output))
+    else:
+        with open(destination_file, "a") as file:
+            file.write(str(mermaid_output))
 
-    #TODO add logging
-    #TODO add CLI args like src directory and output file using argparse
+    #TODO add logic to reqwrite README so that subsequent runs dont just append more mermaid endlessly
+    #TODO finish implementing chunking based on tokens
     #TODO if a README.MD is available, append the mermaid with a header
     #TODO make API key paramertized so it can read from GitHub for workflow
     #TODO create workflow file
