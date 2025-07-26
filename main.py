@@ -19,9 +19,10 @@ logging.basicConfig(
 def parse_args():
     parser = argparse.ArgumentParser(description="descriptio here")
 
-    parser.add_argument("--input-dir", required=True, help="The directory to be ingested by the LLM and represented with MermaidJS")
+    parser.add_argument("input", help="The directory to be ingested by the LLM and represented with MermaidJS")
     parser.add_argument("--output-file", default="README.md", help="The name/location of the MermaidJS markdown output file." \
     "Default appends to README.md")
+    parser.add_argument("--apend", default=False, action="store_true", help="Must set if intending to write MermaidJS to an existing file")
 
     return parser.parse_args()
 
@@ -225,11 +226,13 @@ if __name__ == "__main__":
     # python_project = "./samples/python"
     # # below costs 10 cents per run, wtf
     # nextjs_project = "./samples/saas-starter"
+    file_header = "## MermaidJS Diagram - Generated via Automation \n"
 
     # Parse CLI arguments
     args = parse_args()
-    input_directory = args.input_dir
+    input_directory = args.input
     destination_file = args.output_file
+    is_in_apend_mode = args.apend
 
     # Main function calls to GPT
     file_data_map = get_file_data_map(input_directory)
@@ -237,17 +240,26 @@ if __name__ == "__main__":
     relationships = determine_relationships(summaries)
     mermaid_output = output_mermaid([summaries, relationships])
 
-    logging.info(f"Outputting mermaid to {destination_file}")
-    if os.path.exists("README.md") and destination_file == "README.md":
+    # Output Mermaid to destination file via apend or creating new
+    logging.info(f"Mermaid output ready")
+    if os.path.exists(destination_file) and is_in_apend_mode:
+        logging.info(f"Writing mermaid to existing file in apend mode: {destination_file}")
         with open(destination_file, "a") as file:
-            file.write("## MermaidJS Diagram - Generated via Automation \n")
+            file.write(file_header)
             file.write(str(mermaid_output))
+    elif os.path.exists(destination_file) and not is_in_apend_mode:
+        logging.error("Error. The destination file already exists and the program is not in apend mode.")
+        logging.error("Use --apend flag to output mermaid diagram to existing file")
     else:
-        with open(destination_file, "a") as file:
+        logging.info(f"Writing mermaid to new file: {destination_file}")
+        with open(destination_file, "w+") as file:
+            file.write(file_header)
             file.write(str(mermaid_output))
 
+    logging.info("Process complete")
+
     #TODO add logic to reqwrite README so that subsequent runs dont just append more mermaid endlessly
+    #TODO move ignore patterns to config file
     #TODO finish implementing chunking based on tokens
-    #TODO if a README.MD is available, append the mermaid with a header
     #TODO make API key paramertized so it can read from GitHub for workflow
     #TODO create workflow file
