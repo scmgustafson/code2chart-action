@@ -17,10 +17,10 @@ logging.basicConfig(
     )
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="descriptio here")
+    parser = argparse.ArgumentParser(description="description here")
 
     parser.add_argument("input", help="The directory to be ingested by the LLM and represented with MermaidJS")
-    parser.add_argument("--output-file", default="README.md", help="The name/location of the MermaidJS markdown output file." \
+    parser.add_argument("--output", default="README.md", help="The name/location of the MermaidJS markdown output file." \
     "Default appends to README.md")
     parser.add_argument("--apend", default=False, action="store_true", help="Must set if intending to write MermaidJS to an existing file")
 
@@ -202,7 +202,7 @@ def output_mermaid(data):
 def get_file_data_map(folder_path: str):
     logging.info(f"Processing directory: {folder_path}")
     file_data_map = {}
-    ignore_patterns = ("venv", "samples", "favicon", ".git", "node_modules", "public", ".next", "__tests__", "README.md", "yarn.lock", ".DS_Store", ".env", "__pycache__", "lock")
+    ignore_patterns = config.IGNORE_PATTERNS
 
     # Traverse the target directory
     for root, dirs, files in os.walk(folder_path):
@@ -217,8 +217,10 @@ def get_file_data_map(folder_path: str):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     file_data_map[file_path] = f.read()
+            # If fail to read file, just add the exception so the LLM can get that data too
             except Exception as e:
                 logging.error(f"Error reading {file_path}: {e}")
+                file_data_map[file_path] = e
     return file_data_map
 
 if __name__ == "__main__":
@@ -231,7 +233,7 @@ if __name__ == "__main__":
     # Parse CLI arguments
     args = parse_args()
     input_directory = args.input
-    destination_file = args.output_file
+    destination_file = args.output
     is_in_apend_mode = args.apend
 
     # Main function calls to GPT
