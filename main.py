@@ -11,6 +11,9 @@ OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 OPENAI_MODEL = "o4-mini"
 #OPENAI_MODEL = "gpt-4-turbo"
 
+MERMAID_HEADER = "## MermaidJS Diagram - Generated via Automation"
+MERMAID_FOOTER = "<!-- END AUTOMATED MERMAID -->"
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -177,6 +180,7 @@ def output_mermaid(data):
     mermaid = prompt_model(prompt)
     logging.debug(mermaid)
 
+    logging.info(f"Mermaid output ready")
     return mermaid
 
 # def get_file_data(folder_path: str) -> str:
@@ -223,12 +227,51 @@ def get_file_data_map(folder_path: str):
                 file_data_map[file_path] = e
     return file_data_map
 
+def check_apend_to_existing_file(destination_path):
+    if os.path.exists(destination_path) and not is_in_apend_mode:
+        logging.error("Attempting to write Mermaid to existing file while not in append mode.")
+        logging.error("Use --apend to allow writing to existing file.")
+        exit(0)
+
+def write_mermaid_to_file(destination_path: str, mermaid: str):
+    # Output Mermaid to destination file via apend or creating new
+    try:
+        # Write new file if target doesn't exist
+        if not os.path.exists(destination_path):
+            logging.info(f"Writing mermaid to new file: {destination_path}")
+            with open(destination_path, "w+") as file:
+                file.write(f"{MERMAID_HEADER}\n{str(mermaid)}\n{MERMAID_FOOTER}")
+            return
+        else:
+            # If target exists, load content into var for rewriting
+            with open(destination_path, "r") as file:
+                content = file.read()
+
+            # If Mermaid has already been written to the target file via this script
+            if MERMAID_HEADER in content and MERMAID_FOOTER in content:
+                # Replace existing Mermaid block by rewriting existing file
+                pre = content.split(MERMAID_HEADER)[0]
+                post = content.split(MERMAID_FOOTER)[-1]
+                new_content = f"{pre}{MERMAID_HEADER}\n{mermaid}\n{MERMAID_FOOTER}{post}"
+            else:
+                # Add Mermaid to existing file contents
+                new_content = f"{content}\n{MERMAID_HEADER}\n{mermaid}\n{MERMAID_FOOTER}\n"
+            
+            logging.info(f"Writing mermaid to existing file: {destination_path}")
+            with open(destination_path, "w+") as file:
+                file.write(new_content)
+            logging.info("Process complete")
+            return
+    except Exception as e:
+        logging.error(f"Error occured while attempting to write Mermaid to file: {destination_path}")
+        logging.error(f"Error: {e}")
+
 if __name__ == "__main__":
     # terraform_project = "./samples/terraform"
     # python_project = "./samples/python"
     # # below costs 10 cents per run, wtf
     # nextjs_project = "./samples/saas-starter"
-    file_header = "## MermaidJS Diagram - Generated via Automation \n"
+    
 
     # Parse CLI arguments
     args = parse_args()
@@ -236,32 +279,19 @@ if __name__ == "__main__":
     destination_file = args.output
     is_in_apend_mode = args.apend
 
+    check_apend_to_existing_file(destination_file)
+
     # Main function calls to GPT
     file_data_map = get_file_data_map(input_directory)
     summaries = chunk_and_summarize_files(file_data_map, config.FILES_PER_CHUNK)
     relationships = determine_relationships(summaries)
-    mermaid_output = output_mermaid([summaries, relationships])
+    mermaid_output = str(output_mermaid([summaries, relationships]))
+    #mermaid_output="test"
 
     # Output Mermaid to destination file via apend or creating new
-    logging.info(f"Mermaid output ready")
-    if os.path.exists(destination_file) and is_in_apend_mode:
-        logging.info(f"Writing mermaid to existing file in apend mode: {destination_file}")
-        with open(destination_file, "a") as file:
-            file.write(file_header)
-            file.write(str(mermaid_output))
-    elif os.path.exists(destination_file) and not is_in_apend_mode:
-        logging.error("Error. The destination file already exists and the program is not in apend mode.")
-        logging.error("Use --apend flag to output mermaid diagram to existing file")
-    else:
-        logging.info(f"Writing mermaid to new file: {destination_file}")
-        with open(destination_file, "w+") as file:
-            file.write(file_header)
-            file.write(str(mermaid_output))
+    write_mermaid_to_file(destination_file, mermaid_output)
 
-    logging.info("Process complete")
-
-    #TODO add logic to reqwrite README so that subsequent runs dont just append more mermaid endlessly
-    #TODO move ignore patterns to config file
+    #TODO add unit tests
     #TODO finish implementing chunking based on tokens
     #TODO make API key paramertized so it can read from GitHub for workflow
     #TODO create workflow file

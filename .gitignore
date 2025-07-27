@@ -1,1 +1,5 @@
 credentials.py
+venv/
+__pycache__
+MERMAID.md
+.python-version
