@@ -1,15 +1,22 @@
-import credentials
 import config
-
 import os
 import requests
 import logging
 import argparse
 from itertools import islice
+try:
+    import credentials
+except ImportError:
+    credentials = None
 
 OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 OPENAI_MODEL = "o4-mini"
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", credentials.OPENAI_API_KEY)
+if os.environ.get("OPENAI_API_KEY"):
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+elif credentials != None:
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", credentials.OPENAI_API_KEY)
+else:
+    OPENAI_API_KEY = None
 #OPENAI_MODEL = "gpt-4-turbo"
 
 MERMAID_HEADER = "## MermaidJS Diagram - Generated via Automation"
