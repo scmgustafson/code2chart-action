@@ -9,6 +9,7 @@ from itertools import islice
 
 OPENAI_ENDPOINT = "https://api.openai.com/v1/responses"
 OPENAI_MODEL = "o4-mini"
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", credentials.OPENAI_API_KEY)
 #OPENAI_MODEL = "gpt-4-turbo"
 
 MERMAID_HEADER = "## MermaidJS Diagram - Generated via Automation"
@@ -266,12 +267,14 @@ def write_mermaid_to_file(destination_path: str, mermaid: str):
         logging.error(f"Error occured while attempting to write Mermaid to file: {destination_path}")
         logging.error(f"Error: {e}")
 
+def check_for_api_key():
+    if not OPENAI_API_KEY:
+        logging.error("OpenAI API key not set. Exiting.")
+        logging.error("Set via env var or use `credentials.py` and set OPENAI_API_KEY var")
+        exit(0)
+
 if __name__ == "__main__":
-    # terraform_project = "./samples/terraform"
-    # python_project = "./samples/python"
-    # # below costs 10 cents per run, wtf
-    # nextjs_project = "./samples/saas-starter"
-    
+    check_for_api_key()
 
     # Parse CLI arguments
     args = parse_args()
