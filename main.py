@@ -39,7 +39,7 @@ def parse_args():
 
 def prompt_model(prompt: str):
     headers = {
-        "Authorization": f"Bearer {credentials.OPENAI_API_KEY}",
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
     data = {
