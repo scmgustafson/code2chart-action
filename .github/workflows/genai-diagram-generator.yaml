@@ -10,6 +10,9 @@ jobs:
     steps:
       - run: echo "Detected merge to main branch via ${{ github.event_name }}"
 
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
       - name: Set up Python 3.10.12
         uses: actions/setup-python@v5
         with:
@@ -17,9 +20,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Check out repository code
-        uses: actions/checkout@v4
 
       - name: Run main code
         env:
