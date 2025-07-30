@@ -1,5 +1,5 @@
 name: GenAI Mermaid Diagram Generator
-run-name: Generating a Mermaid Diagram
+run-name: Generate Mermaid Diagram
 on:
   push:
     branches:
@@ -12,6 +12,7 @@ jobs:
 
     permissions:
       contents: write
+
     steps:
       - run: echo "Detected merge to main branch via ${{ github.event_name }}"
 

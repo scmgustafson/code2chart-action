@@ -1,4 +1,5 @@
 import config
+import prompts.templates as prompts
 import os
 import requests
 import logging
@@ -18,7 +19,6 @@ elif credentials != None:
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", credentials.OPENAI_API_KEY)
 else:
     OPENAI_API_KEY = None
-#OPENAI_MODEL = "gpt-4-turbo"
 
 MERMAID_HEADER = "## MermaidJS Diagram - Generated via Automation"
 MERMAID_FOOTER = "<!-- END AUTOMATED MERMAID -->"
@@ -63,34 +63,42 @@ def prompt_model(prompt: str):
         logging.error(response.json())
 
 def summarize_key_files(data):
-    prompt = (
-        "You are summarizing the purpose and content of code files in a repository. You will be given them in chunks of N files.\n"
-        "- Provide the output in JSON so that another LLM can utilize it and it is token efficient.\n"
-        "- Identify important files and their roles\n"
-        "- Each element should be labeled with whatever name or ID can be pulled from the source files\n"
-        "- Mention key languages, frameworks, or tools used\n"
-        "- Output as a bullet list\n"
-        "- Include a header to describe your output\n"    
-        "\n"
-        f"{data}"
-    )
+    prompt = prompts.summarize_key_files_prompt(data)
     
+    logging.info("Beginning repo file summarization")
     summary = prompt_model(prompt)
+
     return summary
 
-# def summarize_file(file_path: str, file_content: str) -> str:
-#     prompt = (
-#         f"You are summarizing the purpose and content of the following code file:\n"
-#         f"File: {file_path}\n"
-#         f"---\n"
-#         f"{file_content}\n"
-#         "\n"
-#         "- Identify the file's role\n"
-#         "- Mention key languages, frameworks, or tools used\n"
-#         "- Output as a bullet list\n"
-#         "- Include a header to describe your output\n"
-#     )
-#     return prompt_model(prompt)
+def determine_relationships(data):
+    prompt = prompts.determine_relationships_prompt(data)
+
+    logging.info("Determining relationships between processed chunks/files")
+    relationships = prompt_model(prompt)
+
+    return relationships
+
+def output_mermaid(data):
+    
+    # Take each input file and format separately into a single string
+    prompt_input = ""
+    for dict in data:
+        prompt_input += str(dict)
+        prompt_input += "\n---\n"
+
+    logging.debug("\n----------- Start Mermaid Prompt Input -----------")
+    logging.debug(input)
+    logging.debug("----------- End Mermaid Prompt Input -----------\n")
+        
+    prompt = prompts.output_mermaid_prompt(prompt_input)
+
+    logging.info("Prompting for Mermaid")
+    mermaid = prompt_model(prompt)
+
+    logging.debug(mermaid)
+
+    logging.info(f"Mermaid output ready")
+    return mermaid
 
 def chunk_by_tokens(file_data_map, max_tokens=config.MAX_TOKENS, model=OPENAI_MODEL):
     """
@@ -159,7 +167,7 @@ def chunk_by_tokens(file_data_map, max_tokens=config.MAX_TOKENS, model=OPENAI_MO
 
     # Handle any remaining files in the last chunk
     if current_chunk:
-        logging.info(f"Processing {chunk_counter} chunk of {estimated_chunks} total chunks")
+        logging.info(f"Processing chunk {chunk_counter} of {estimated_chunks} total chunks")
         chunk_prompt = "".join(
             f"\n--- {path} ---\n{content}\n" for path, content in current_chunk
         )
@@ -168,128 +176,8 @@ def chunk_by_tokens(file_data_map, max_tokens=config.MAX_TOKENS, model=OPENAI_MO
 
     return chunked_summaries
 
-# def chunk_and_summarize_files(file_data_map, files_per_chunk=5):
-#     """
-#     Chunks the file_data_map into groups of files_per_chunk, summarizes each chunk,
-#     and returns a dict mapping chunk index to summary.
-#     """
-
-#     def chunk_dict(data, size):
-#         it = iter(data.items())
-#         for i in range(0, len(data), size):
-#             yield dict(islice(it, size))
-
-#     chunked_summaries = {}
-#     total_chunks = (len(file_data_map) + files_per_chunk - 1) // files_per_chunk
-#     for idx, chunk in enumerate(chunk_dict(file_data_map, files_per_chunk), start=1):
-#         logging.info(f"Processing chunk {idx} of {total_chunks}")
-#         chunk_prompt = ""
-#         for file_path, file_content in chunk.items():
-#             chunk_prompt += f"\n--- {file_path} ---\n{file_content}\n"
-#         summary = summarize_key_files(chunk_prompt)
-#         chunked_summaries[idx - 1] = summary
-#     return chunked_summaries
-
-def determine_relationships(data):
-    prompt = (
-        "Based on the summary of files below, infer the relationships between modules, components, or infrastructure.\n"
-        "- Output as a bullet list of 'A depends on B' style\n"
-        "- Include only logical, functional relationships\n"
-        "- Output as a bullet list\n"
-        "- Include a header to describe your output\n"    
-        "\n"
-        f"{data}"
-    )
-
-    logging.info("Determining relationships between processed chunks/files")
-    relationships = prompt_model(prompt)
-
-    return relationships
-
-def output_mermaid(data):
-    input = ""
-    for dict in data:
-        input += str(dict)
-        input += "\n---\n"
-
-    logging.debug("\n----------- Start Mermaid Prompt Input -----------")
-    logging.debug(input)
-    logging.debug("----------- End Mermaid Prompt Input -----------\n")
-        
-    prompt = (
-        "Generate a Mermaid diagram from the following module information and relationships.\n"
-        "- ONLY use correct syntax on the Mermaid diagram\n"
-        "- Make sure that every piece of the summary is accounted for in the graph, it's important to be thorough\n"
-        "- Determine the best graph type based on the format\n"
-        "- Use subgraphs, classes, and labels where relevant\n"
-        "- When referencing functions, you must avoid using () as that will give a syntax error. Omit that.\n"
-        "- Class definition CSVs cannot include a space between the CSV items. Omit those.\n"
-        "- Use styling that is easy to read and make sure to label arrows with some detail about the relationship between entities\n"
-        "- Output only the code block\n"
-        "\n"
-        "Available MermaidJS themes:\n"
-        '["default", "forest", "dark", "neutral", "base", "null"]\n'
-        "\n"
-        "Available arrow types:\n"
-        '["-->", "<--", "<-->", "---", "==>", "===", "-.->", "x--", "o--"]\n'
-        "\n"
-        "Here is an example of MermaidJS syntax for a complex diagram:\n\n"
-        '''```mermaid
-            %%{init: {"theme": "dark", "themeVariables": {"primaryColor": "#e8f4fd","edgeLabelBackground":"#ffffff"}}}%%
-            graph TD
-            subgraph "samples/python"
-                MP[samples/python/main.py]
-                subgraph "app"
-                RT[samples/python/app/routes.py]
-                end
-                subgraph "services"
-                US[samples/python/services/user_service.py]
-                end
-                subgraph "utils"
-                FM[samples/python/utils/formatter.py]
-                end
-            end
-
-            MP -->|imports routes.py| RT
-            RT -->|calls user_service.py| US
-            US -->|uses formatter.py| FM
-
-            classDef file fill:#d5f5e3,stroke:#333,color:#333
-            class MP,RT,US,FM file
-            ```
-        '''
-        f"\n\Data to generate Mermaid from:\n{data}"
-    )
-
-    logging.info("Prompting for Mermaid")
-    mermaid = prompt_model(prompt)
-    logging.debug(mermaid)
-
-    logging.info(f"Mermaid output ready")
-    return mermaid
-
-# def get_file_data(folder_path: str) -> str:
-#     file_data = ""
-#     ignore_patterns = (".git", "node_modules", "public", ".next", "__tests__", "README.md", "yarn.lock", ".DS_Store", ".env", "__pycache__")
-
-#     for root, dirs, files in os.walk(folder_path):
-#         # Remove ignored directories in-place
-#         dirs[:] = [d for d in dirs if not any(pattern in d for pattern in ignore_patterns)]
-#         for filename in files:
-#             if any(pattern in filename for pattern in ignore_patterns):
-#                 continue
-#             file_path = os.path.join(root, filename)
-#             try:
-#                 with open(file_path, "r", encoding="utf-8") as f:
-#                     file_data += f"\n--- {file_path} ---\n"
-#                     file_data += f.read()
-#             except Exception as e:
-#                 print(f"Error reading {file_path}: {e}")
-
-#     return file_data
-
 def get_file_data_map(folder_path: str):
-    logging.info(f"Processing directory: {folder_path}")
+    logging.info(f"Processing directory {folder_path} into file data map")
     file_data_map = {}
     ignore_patterns = config.IGNORE_PATTERNS
 
@@ -313,8 +201,10 @@ def get_file_data_map(folder_path: str):
     return file_data_map
 
 def check_apend_to_existing_file(destination_path):
+    # Check if attempting to write to an existing file and not in apend mode to stop program
     if os.path.exists(destination_path) and not is_in_apend_mode:
-        raise Exception("Attempting to write Mermaid to existing file while not in append mode.\nUse --apend to allow writing to existing file.")
+        raise Exception("Attempting to write Mermaid to existing file while not in append mode.\n \
+                        Use --apend to allow writing to existing file.")
 
 def write_mermaid_to_file(destination_path: str, mermaid: str):
     # Output Mermaid to destination file via apend or creating new
@@ -376,6 +266,7 @@ if __name__ == "__main__":
     write_mermaid_to_file(destination_file, mermaid_output)
 
     #TODO add unit tests
+    #TODO check for valid mermaid syntax or retry that step
     #TODO break prompts into a prompts.py file
     #TODO break functions out of main and into utilities file
     #TODO Setup everything need to put workflow on marketplace
