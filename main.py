@@ -3,6 +3,7 @@ import os
 import requests
 import logging
 import argparse
+import tiktoken
 from itertools import islice
 try:
     import credentials
@@ -91,27 +92,103 @@ def summarize_key_files(data):
 #     )
 #     return prompt_model(prompt)
 
-def chunk_and_summarize_files(file_data_map, files_per_chunk=5):
+def chunk_by_tokens(file_data_map, max_tokens=config.MAX_TOKENS, model=OPENAI_MODEL):
     """
-    Chunks the file_data_map into groups of files_per_chunk, summarizes each chunk,
-    and returns a dict mapping chunk index to summary.
+    Chunk files by token count rather than file count.
+    Ensures that no chunk exceeds max_tokens and files are not split.
     """
-
-    def chunk_dict(data, size):
-        it = iter(data.items())
-        for i in range(0, len(data), size):
-            yield dict(islice(it, size))
-
+    try:
+        enc = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # Default to cl100k_base for newer models like o4-mini
+        enc = tiktoken.get_encoding("cl100k_base")
     chunked_summaries = {}
-    total_chunks = (len(file_data_map) + files_per_chunk - 1) // files_per_chunk
-    for idx, chunk in enumerate(chunk_dict(file_data_map, files_per_chunk), start=1):
-        logging.info(f"Processing chunk {idx} of {total_chunks}")
-        chunk_prompt = ""
-        for file_path, file_content in chunk.items():
-            chunk_prompt += f"\n--- {file_path} ---\n{file_content}\n"
+    current_chunk = []
+    current_token_count = 0
+    chunk_index = 0
+
+    sorted_items = list(file_data_map.items())  # Ensure order is consistent
+
+    # Precompute token counts for each file
+    token_counts = []
+    for file_path, file_content in sorted_items:
+        file_tokens = enc.encode(file_content)
+        file_token_count = len(file_tokens)
+        token_counts.append(file_token_count)
+
+    # Estimate total chunks
+    total_tokens = 0
+    estimated_chunks = 0
+    for count in token_counts:
+        if count > max_tokens:
+            continue
+        if total_tokens + count > max_tokens:
+            estimated_chunks += 1
+            total_tokens = 0
+        total_tokens += count
+    if total_tokens > 0:
+        estimated_chunks += 1
+
+    chunk_counter = 1
+
+    for idx, (file_path, file_content) in enumerate(sorted_items):
+        file_tokens = enc.encode(file_content)
+        file_token_count = len(file_tokens)
+
+        if file_token_count > max_tokens:
+            logging.warning(f"File {file_path} exceeds token limit alone ({file_token_count} > {max_tokens}), skipping.")
+            continue
+
+        if current_token_count + file_token_count > max_tokens:
+            logging.info(f"Processing chunk {chunk_counter} of {estimated_chunks} total chunks")
+            # Finalize current chunk and reset
+            chunk_prompt = "".join(
+                f"\n--- {path} ---\n{content}\n" for path, content in current_chunk
+            )
+            summary = summarize_key_files(chunk_prompt)
+            chunked_summaries[chunk_index] = summary
+
+            chunk_index += 1
+            chunk_counter += 1
+            current_chunk = []
+            current_token_count = 0
+
+        # Add file to current chunk
+        current_chunk.append((file_path, file_content))
+        current_token_count += file_token_count
+
+    # Handle any remaining files in the last chunk
+    if current_chunk:
+        logging.info(f"Processing {chunk_counter} chunk of {estimated_chunks} total chunks")
+        chunk_prompt = "".join(
+            f"\n--- {path} ---\n{content}\n" for path, content in current_chunk
+        )
         summary = summarize_key_files(chunk_prompt)
-        chunked_summaries[idx - 1] = summary
+        chunked_summaries[chunk_index] = summary
+
     return chunked_summaries
+
+# def chunk_and_summarize_files(file_data_map, files_per_chunk=5):
+#     """
+#     Chunks the file_data_map into groups of files_per_chunk, summarizes each chunk,
+#     and returns a dict mapping chunk index to summary.
+#     """
+
+#     def chunk_dict(data, size):
+#         it = iter(data.items())
+#         for i in range(0, len(data), size):
+#             yield dict(islice(it, size))
+
+#     chunked_summaries = {}
+#     total_chunks = (len(file_data_map) + files_per_chunk - 1) // files_per_chunk
+#     for idx, chunk in enumerate(chunk_dict(file_data_map, files_per_chunk), start=1):
+#         logging.info(f"Processing chunk {idx} of {total_chunks}")
+#         chunk_prompt = ""
+#         for file_path, file_content in chunk.items():
+#             chunk_prompt += f"\n--- {file_path} ---\n{file_content}\n"
+#         summary = summarize_key_files(chunk_prompt)
+#         chunked_summaries[idx - 1] = summary
+#     return chunked_summaries
 
 def determine_relationships(data):
     prompt = (
@@ -290,7 +367,7 @@ if __name__ == "__main__":
 
     # Main function calls to GPT
     file_data_map = get_file_data_map(input_directory)
-    summaries = chunk_and_summarize_files(file_data_map, config.FILES_PER_CHUNK)
+    summaries = chunk_by_tokens(file_data_map)
     relationships = determine_relationships(summaries)
     mermaid_output = str(output_mermaid([summaries, relationships]))
     #mermaid_output="test"
@@ -299,5 +376,4 @@ if __name__ == "__main__":
     write_mermaid_to_file(destination_file, mermaid_output)
 
     #TODO add unit tests
-    #TODO finish implementing chunking based on tokens
     #TODO Setup everything need to put workflow on marketplace
