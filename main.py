@@ -237,9 +237,7 @@ def get_file_data_map(folder_path: str):
 
 def check_apend_to_existing_file(destination_path):
     if os.path.exists(destination_path) and not is_in_apend_mode:
-        logging.error("Attempting to write Mermaid to existing file while not in append mode.")
-        logging.error("Use --apend to allow writing to existing file.")
-        exit(0)
+        raise Exception("Attempting to write Mermaid to existing file while not in append mode.\nUse --apend to allow writing to existing file.")
 
 def write_mermaid_to_file(destination_path: str, mermaid: str):
     # Output Mermaid to destination file via apend or creating new
@@ -276,9 +274,8 @@ def write_mermaid_to_file(destination_path: str, mermaid: str):
 
 def check_for_api_key():
     if not OPENAI_API_KEY:
-        logging.error("OpenAI API key not set. Exiting.")
-        logging.error("Set via env var or use `credentials.py` and set OPENAI_API_KEY var")
-        exit(0)
+        raise Exception("OpenAI API key not set.\n"
+        "Set via env var or use `credentials.py` and set OPENAI_API_KEY var")
 
 if __name__ == "__main__":
     check_for_api_key()
@@ -303,5 +300,4 @@ if __name__ == "__main__":
 
     #TODO add unit tests
     #TODO finish implementing chunking based on tokens
-    #TODO make API key paramertized so it can read from GitHub for workflow
-    #TODO create workflow file
+    #TODO Setup everything need to put workflow on marketplace
