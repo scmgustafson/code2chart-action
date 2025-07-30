@@ -1,4 +1,5 @@
 FILES_PER_CHUNK = 5
+MAX_TOKENS = 100000
 DESTINATION_FILE = 'MERMAID.md'
 IGNORE_PATTERNS = ("venv", "samples", "favicon", ".git", 
                    "node_modules", "public", ".next", "__tests__", "README.md", 
