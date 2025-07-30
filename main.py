@@ -376,4 +376,6 @@ if __name__ == "__main__":
     write_mermaid_to_file(destination_file, mermaid_output)
 
     #TODO add unit tests
+    #TODO break prompts into a prompts.py file
+    #TODO break functions out of main and into utilities file
     #TODO Setup everything need to put workflow on marketplace
