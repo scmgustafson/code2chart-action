@@ -2,4 +2,5 @@ credentials.py
 venv/
 __pycache__
 MERMAID.md
+test.md
 .python-version
