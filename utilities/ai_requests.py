@@ -1,4 +1,3 @@
-import credentials
 import config
 import prompts.templates as prompts
 import utilities.auth as auth
