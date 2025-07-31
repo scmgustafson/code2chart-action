@@ -64,5 +64,5 @@ def output_mermaid_prompt(data: str) -> str:
             class MP,RT,US,FM file
             ```
         '''
-        f"\nData to generate Mermaid from:\n{data}"
+        f"\n\Data to generate Mermaid from:\n{data}"
     )
