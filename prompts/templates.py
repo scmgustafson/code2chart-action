@@ -66,3 +66,4 @@ def output_mermaid_prompt(data: str) -> str:
         '''
         f"\n\Data to generate Mermaid from:\n{data}"
     )
+        # absolutely do not remove this \ before Data otherwise the output sucks
