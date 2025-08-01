@@ -2,39 +2,51 @@
 
 ## MermaidJS Diagram - Generated via Automation
 ```mermaid
-%%{init: {"theme": "default"}}%%
-graph TD
-    subgraph Root
-        CONF[config.py]
-        MAIN[main.py]
-    end
-    subgraph utilities
-        FU[file_utils.py]
-        AUTH[auth.py]
-        AIREQ[ai_requests.py]
-        INIT[__init__.py]
-    end
-    subgraph prompts
-        TEMP[templates.py]
-    end
-    subgraph tests
-        TM[tests_main.py]
-    end
-    CRED[credentials.py]
+%%{init: {"theme":"forest"}}%%
+graph TB
+  subgraph "Root Files"
+    config[config.py]
+    main[main.py]
+    ini[pytest.ini]
+  end
 
-    MAIN -->|imports settings| CONF
-    MAIN -->|uses file I/O utilities| FU
-    MAIN -->|performs auth check| AUTH
-    MAIN -->|integrates with AI requests| AIREQ
+  subgraph "utilities"
+    auth[utilities/auth.py]
+    file_utils[utilities/file_utils.py]
+    ai_requests[utilities/ai_requests.py]
+  end
 
-    FU -->|uses IGNORE_PATTERNS| CONF
-    AUTH -->|reads API key from env or credentials.py| CRED
-    AIREQ -->|reads settings| CONF
-    AIREQ -->|uses prompt templates| TEMP
+  subgraph "prompts"
+    templates[prompts/templates.py]
+  end
 
-    TM -->|tests main entry| MAIN
+  tests_dir[tests/]
 
-    classDef file fill:#d5f5e3,stroke:#333,color:#333
-    class CONF,MAIN,FU,AUTH,AIREQ,INIT,TEMP,TM,CRED file
+  %% Dependencies %%
+  main -->|reads settings| config
+  main -->|auth validation| auth
+  main -->|file operations| file_utils
+  main -->|AI summarization| ai_requests
+
+  file_utils -->|uses settings| config
+
+  ai_requests -->|uses templates| templates
+  ai_requests -->|uses settings| config
+
+  tests_dir -->|pytest config| ini
+  tests_dir -->|tests CLI| main
+  tests_dir -->|tests auth| auth
+  tests_dir -->|tests file utils| file_utils
+  tests_dir -->|tests AI requests| ai_requests
+  tests_dir -->|tests templates| templates
+
+  %% Styling %%
+  classDef pythonfile fill:#d5f5e3,stroke:#333,color:#333
+  classDef inifile fill:#fcf3cf,stroke:#333,color:#333
+  classDef dir fill:#d6eaf8,stroke:#333,color:#333
+
+  class config,main,auth,file_utils,ai_requests,templates pythonfile
+  class ini inifile
+  class tests_dir dir
 ```
 <!-- END AUTOMATED MERMAID -->
