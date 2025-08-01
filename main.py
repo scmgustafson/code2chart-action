@@ -6,7 +6,6 @@ import utilities.file_utils as file_utils
 
 # Other imports
 import os
-import requests
 import logging
 import argparse
 from itertools import islice
@@ -35,11 +34,11 @@ def parse_args():
 
     return parser.parse_args()
 
-def check_apend_to_existing_file(destination_path):
-    # Check if attempting to write to an existing file and not in apend mode to stop program
-    if os.path.exists(destination_path) and not is_in_apend_mode:
+def check_apend_to_existing_file(destination_path, is_apend):
+    if os.path.exists(destination_path) and not is_apend:
         raise Exception("Attempting to write Mermaid to existing file while not in append mode.\n \
                         Use --apend to allow writing to existing file.")
+
 
 if __name__ == "__main__":
     # Parse CLI arguments
@@ -50,7 +49,7 @@ if __name__ == "__main__":
 
     # Prechecks
     auth.check_for_api_key()
-    check_apend_to_existing_file(destination_file)
+    check_apend_to_existing_file(destination_file, is_in_apend_mode)
 
     # Main function calls to GPT
     file_data_map = file_utils.get_file_data_map(input_directory)
