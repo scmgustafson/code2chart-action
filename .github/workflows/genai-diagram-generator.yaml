@@ -39,7 +39,7 @@ jobs:
       - name: Run main code
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python3 main.py . --apend
+        run: python3 main.py . --append
 
       - name: Commit README update
         env:
