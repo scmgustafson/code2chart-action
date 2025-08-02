@@ -1,4 +1,4 @@
-# Code2Chart Action 🚀 — Auto-Generate MermaidJS Diagrams for Your Codebase
+# Code2Chart Action — Auto-Generate MermaidJS Diagrams for Your Codebase
 
 [![GitHub Marketplace](https://img.shields.io/badge/GitHub-Marketplace-blue?logo=github)](https://github.com/marketplace/actions/code2chart)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -11,10 +11,10 @@
 
 ## 📦 Features
 
-- 🧠 Uses OpenAI to analyze code and infer relationships
-- 📈 Outputs `MermaidJS` diagrams directly to your `README.md` or a markdown doc
-- 🧪 Supports PR/CI workflows with unit test integration
-- 🔁 Append to or overwrite existing markdown content
+- Uses `OpenAI` to analyze code and infer relationships between modules
+- Outputs `MermaidJS` diagrams directly to your `README.md` or a markdown doc
+- Supports integration into existing PR/CI workflows
+- Append to or overwrite existing markdown content
 
 ---
 
@@ -37,7 +37,7 @@
 
 ---
 
-## 🚀 Usage
+## Usage
 
 ### Minimal Example
 
