@@ -33,7 +33,7 @@ def parse_args():
         help="Path to the output Markdown file for MermaidJS diagram (default: README.md)."
     )
     parser.add_argument(
-        "--apend",
+        "--append",
         default=False,
         action="store_true",
         help="Append MermaidJS output to an existing file. Required if the output file already exists."
