@@ -14,6 +14,7 @@ def test_determine_relationships_mocks_api(monkeypatch):
 
 def test_output_mermaid_mocks_api(monkeypatch):
     monkeypatch.setattr(ai_requests, "prompt_model", lambda prompt: "mermaid_output")
+    monkeypatch.setattr(ai_requests.file_utils, "is_mermaid_syntax", lambda mermaid: True)
     data = [{"file": "file1.py"}, {"file": "file2.py"}]
     result = ai_requests.output_mermaid(data)
     assert result == "mermaid_output"
