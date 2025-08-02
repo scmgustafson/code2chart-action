@@ -32,7 +32,10 @@ def prompt_model(prompt: str):
         return None
     else:
         logging.error(f"Error occured. Status code: {response.status_code}")
-        logging.error(response.json())
+        if "You exceeded your current quota" in response.text:
+            raise Exception("OpenAI API quota exceeded.")
+        else: 
+            raise Exception(response.json())
 
 def summarize_key_files(data):
     prompt = prompts.summarize_key_files_prompt(data)
