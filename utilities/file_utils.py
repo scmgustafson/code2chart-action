@@ -36,7 +36,7 @@ def is_mermaid_syntax(text: str) -> bool:
             config.CLASS_ASSIGN.match(stripped)
         ])
         if not matched:
-            print(f"[FAIL] Line {lineno}: unrecognized syntax: {stripped}")
+            logging.error(f"[FAIL] Line {lineno}: unrecognized syntax: {stripped}")
             return False
 
     return found_diagram_start
