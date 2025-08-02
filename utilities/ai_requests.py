@@ -59,7 +59,7 @@ def output_mermaid(data):
         prompt_input += "\n---\n"
 
     logging.debug("\n----------- Start Mermaid Prompt Input -----------")
-    logging.debug(input)
+    logging.debug(prompt_input)
     logging.debug("----------- End Mermaid Prompt Input -----------\n")
         
     prompt = prompts.output_mermaid_prompt(prompt_input)

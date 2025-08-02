@@ -16,14 +16,34 @@ logging.basicConfig(
     )
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="description here")
-
-    parser.add_argument("input", help="The directory to be ingested by the LLM and represented with MermaidJS")
-    parser.add_argument(
-        "--output", default="README.md", help="The name/location of the MermaidJS markdown output file." \
-        "Default appends to README.md"
+    parser = argparse.ArgumentParser(
+        description="Generate a MermaidJS diagram from a directory of code files using an LLM.",
+        epilog="Example usage:\n"
+               "  python main.py ./src --output diagram.md --apend --debug",
+        formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument("--apend", default=False, action="store_true", help="Must set if intending to write MermaidJS to an existing file")
+
+    parser.add_argument(
+        "input",
+        help="Path to the input directory containing code files to analyze."
+    )
+    parser.add_argument(
+        "--output",
+        default="README.md",
+        help="Path to the output Markdown file for MermaidJS diagram (default: README.md)."
+    )
+    parser.add_argument(
+        "--apend",
+        default=False,
+        action="store_true",
+        help="Append MermaidJS output to an existing file. Required if the output file already exists."
+    )
+    parser.add_argument(
+        "--debug",
+        default=False,
+        action="store_true",
+        help="Enable debug logging for troubleshooting."
+    )
 
     return parser.parse_args()
 
@@ -39,6 +59,15 @@ if __name__ == "__main__":
     input_directory = args.input
     destination_file = args.output
     is_in_apend_mode = args.apend
+    is_in_debug_mode = args.debug
+
+    if is_in_debug_mode:
+        logging.debug("Program running in debug logging level")
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            force=True
+        )   
 
     # Prechecks
     auth.check_for_api_key()
@@ -54,11 +83,8 @@ if __name__ == "__main__":
     file_utils.write_mermaid_to_file(destination_file, mermaid_output)
 
     #TODO check for valid mermaid syntax or retry that step
-    #TODO add unit tests to workflow before diagram generator (maybe this interferes with workflow?)
     #TODO add step to raise exception if quota exceed
     '''
     2025-08-02 02:03:35,788 - ERROR - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
     '''
-    #TODO add trigger for on PR to main
-    #TODO add debug mode with cli flag
     #TODO Setup everything need to put workflow on marketplace
