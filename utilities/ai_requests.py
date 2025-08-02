@@ -48,6 +48,7 @@ def prompt_model(prompt: str):
             except Exception as e:
                 # If response is not JSON or another error occurs, raise a generic exception
                 raise Exception(f"OpenAI API error (status {response.status_code}): {response.text}")
+            
 def summarize_key_files(data):
     prompt = prompts.summarize_key_files_prompt(data)
     
@@ -82,7 +83,7 @@ def output_mermaid(data):
     retries = config.TOTAL_RETRIES
     delay = config.RETRY_DELAY
     attempt_counter = 0
-    while attempt_counter < retries:
+    while attempt_counter <= retries:
         logging.info("Prompting for Mermaid")
         mermaid = str(prompt_model(prompt))
         logging.debug(mermaid)
@@ -96,8 +97,6 @@ def output_mermaid(data):
         time.sleep(delay)
     
     raise Exception(f"Output Mermaid invalid after {retries}. Exiting")
-
-
 
 def chunk_by_tokens(file_data_map, max_tokens=config.MAX_TOKENS, model=OPENAI_MODEL):
     """

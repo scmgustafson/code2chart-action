@@ -82,5 +82,6 @@ if __name__ == "__main__":
     # Output Mermaid to destination file via apend or creating new
     file_utils.write_mermaid_to_file(destination_file, mermaid_output)
 
-    #TODO check for valid mermaid syntax or retry that step
     #TODO Setup everything need to put workflow on marketplace
+    #TODO Create action.yml
+    #TODO remove workflow file or port to new repo

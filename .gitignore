@@ -4,3 +4,4 @@ __pycache__
 MERMAID.md
 test.md
 .python-version
+.pytest_cache

@@ -1,5 +1,5 @@
-name: GenAI Mermaid Diagram Generator
-run-name: Generate Mermaid Diagram
+name: Code2Chart
+run-name: Generate Mermaid Diagram on PR or Push to Main
 on:
   push:
     branches:
@@ -13,7 +13,7 @@ on:
     branches:
       - main
 jobs:
-  GenAI-Mermaid-Diagram-Generator:
+  Code2Chart:
     runs-on: ubuntu-latest
 
     permissions:
