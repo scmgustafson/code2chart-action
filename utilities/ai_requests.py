@@ -92,7 +92,7 @@ def output_mermaid(data):
                 logging.info(f"Mermaid output ready")
                 return mermaid
         logging.warning(f"Mermaid output failed validation (attempt {attempt_counter}/{retries}), retrying...")
-        attempt_counter +=1
+        attempt_counter += 1
         time.sleep(delay)
     
     raise Exception(f"Output Mermaid invalid after {retries}. Exiting")
