@@ -58,7 +58,7 @@ if __name__ == "__main__":
     args = parse_args()
     input_directory = args.input
     destination_file = args.output
-    is_in_apend_mode = args.apend
+    is_in_apend_mode = args.append
     is_in_debug_mode = args.debug
 
     if is_in_debug_mode:
