@@ -23,7 +23,7 @@ def is_mermaid_syntax(text: str) -> bool:
             found_diagram_start = True
             continue
         if not found_diagram_start and not stripped.startswith("%%{"):
-            print(f"[FAIL] Line {lineno}: expected diagram start, got: {stripped}")
+            logging.error(f"[FAIL] Line {lineno}: expected diagram start, got: {stripped}")
             return False
 
         matched = any([
