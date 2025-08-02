@@ -1,0 +1,16 @@
+name: Code2Chart
+description: “Generates a Mermaid diagram and updates README on PRs or pushes”
+inputs:
+  api_key:
+    description: "OpenAI API key"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - run: pip install -r requirements.txt
+    - run: python main.py . --append
+      env:
+        OPENAI_API_KEY: ${{ inputs.api_key }}
+branding:
+  icon: "diagram"
+  color: "yellow"
