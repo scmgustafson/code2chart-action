@@ -1,54 +1,62 @@
 # Automated Diagram Generator via Mermaid and AI
 
-## MermaidJS Diagram - Generated via Automation
-```mermaid
-%%{init: {"theme":"default"}}%%
-graph TD
-  subgraph "Root"
-    CP[config.py]
-    MP[main.py]
-    PN[pytest.ini]
-  end
-  subgraph "utilities"
-    PUU[utilities/file_utils.py]
-    UAU[utilities/auth.py]
-    AUR[utilities/ai_requests.py]
-  end
-  subgraph "prompts"
-    PT[prompts/templates.py]
-  end
-  subgraph "environment"
-    EV[Environment Variables]
-    CR[credentials.py]
-  end
-  subgraph "tests"
-    TM1[test_main.py]
-    TM2[test_file_utils.py]
-    TM3[test_auth.py]
-    TM4[test_ai_requests.py]
-    TM5[test_templates.py]
-  end
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-  MP -->|reads settings| CP
-  MP -->|collects files| PUU
-  MP -->|checks API key| UAU
-  MP -->|summarizes & infers| AUR
+Automated Diagram Generator is a tool that leverages AI to analyze your codebase and generate [MermaidJS](https://mermaid-js.github.io/) diagrams automatically. It is designed to help developers visualize project structure, dependencies, and relationships with minimal manual effort.
 
-  PUU -->|uses settings| CP
-  UAU -->|loads API key from| EV
-  UAU -->|loads API key from| CR
-  AUR -->|uses settings| CP
-  AUR -->|uses templates| PT
+## Features
 
-  TM1 -->|tests| MP
-  TM2 -->|tests| PUU
-  TM3 -->|tests| UAU
-  TM4 -->|tests| AUR
-  TM5 -->|tests| PT
+- **Automated Codebase Analysis:** Uses AI to summarize and infer relationships between files.
+- **MermaidJS Output:** Generates ready-to-use Mermaid diagrams for documentation.
+- **CLI Tool:** Simple command-line interface for easy integration into workflows.
+- **Append or Overwrite:** Choose to append diagrams to existing markdown files or create new ones.
+- **Customizable:** Easily extend or adapt for different project structures.
 
-  PN -->|configures pytest for| tests
+## Getting Started
 
-  classDef file fill:#d5f5e3,stroke:#333,color:#333
-  class CP,MP,PN,PUU,UAU,AUR,PT,CR,TM1,TM2,TM3,TM4,TM5 file
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/yourusername/genai-diagram-generator.git
+cd genai-diagram-generator
 ```
-<!-- END AUTOMATED MERMAID -->
+
+2. **Install dependencies:**
+
+```bash
+pip install -r requirements.txt
+```
+
+3. **Set up your API key:**
+
+- Ensure you have an OpenAI API key set in your environment variables.
+
+4. **Run the generator:**
+
+```bash
+python main.py <input_directory> --output README.md
+```
+
+- Use `--apend` if you want to append to an existing file.
+
+## Example
+
+See [`samples/nextjs_mermaid_example.md`](samples/nextjs_mermaid_example.md) for a sample output.
+
+## License
+
+This project is licensed under the MIT License. Do whatever you want with it!
+
+## Acknowledgements
+
+- Inspired by [MermaidJS](https://mermaid-js.github.io/).
+- Example SaaS starter code sample from [Vercel's Next.js SaaS Starter](https://github.com/vercel/nextjs-saas-starter) (MIT License).
+- Uses [OpenAI](https://platform.openai.com/) for code summarization and relationship inference.
+
+## Contributing
+
+Contributions are welcome! Please open issues or submit pull requests to help improve this project. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## MermaidJS Diagram - Generated via Automation
