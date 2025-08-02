@@ -37,8 +37,17 @@ def prompt_model(prompt: str):
         if "You exceeded your current quota" in response.text:
             raise Exception("OpenAI API quota exceeded.")
         else: 
-            raise Exception(response.json())
-
+            try:
+                error_json = response.json()
+                # Try to extract a specific error message
+                error_message = error_json.get("error") or error_json.get("message") or error_json.get("detail")
+                if error_message:
+                    raise Exception(f"OpenAI API error: {error_message}")
+                else:
+                    raise Exception(f"OpenAI API error: {error_json}")
+            except Exception as e:
+                # If response is not JSON or another error occurs, raise a generic exception
+                raise Exception(f"OpenAI API error (status {response.status_code}): {response.text}")
 def summarize_key_files(data):
     prompt = prompts.summarize_key_files_prompt(data)
     
@@ -83,7 +92,7 @@ def output_mermaid(data):
                 logging.info(f"Mermaid output ready")
                 return mermaid
         logging.warning(f"Mermaid output failed validation (attempt {attempt_counter}/{retries}), retrying...")
-        attempt_counter +=1
+        attempt_counter += 1
         time.sleep(delay)
     
     raise Exception(f"Output Mermaid invalid after {retries}. Exiting")

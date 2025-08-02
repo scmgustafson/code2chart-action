@@ -19,7 +19,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Generate a MermaidJS diagram from a directory of code files using an LLM.",
         epilog="Example usage:\n"
-               "  python main.py ./src --output diagram.md --apend --debug",
+               "  python main.py ./src --output diagram.md --append --debug",
         formatter_class=argparse.RawTextHelpFormatter
     )
 
@@ -33,7 +33,7 @@ def parse_args():
         help="Path to the output Markdown file for MermaidJS diagram (default: README.md)."
     )
     parser.add_argument(
-        "--apend",
+        "--append",
         default=False,
         action="store_true",
         help="Append MermaidJS output to an existing file. Required if the output file already exists."

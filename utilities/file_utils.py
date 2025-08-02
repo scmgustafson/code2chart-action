@@ -23,7 +23,7 @@ def is_mermaid_syntax(text: str) -> bool:
             found_diagram_start = True
             continue
         if not found_diagram_start and not stripped.startswith("%%{"):
-            print(f"[FAIL] Line {lineno}: expected diagram start, got: {stripped}")
+            logging.error(f"[FAIL] Line {lineno}: expected diagram start, got: {stripped}")
             return False
 
         matched = any([
@@ -36,7 +36,7 @@ def is_mermaid_syntax(text: str) -> bool:
             config.CLASS_ASSIGN.match(stripped)
         ])
         if not matched:
-            print(f"[FAIL] Line {lineno}: unrecognized syntax: {stripped}")
+            logging.error(f"[FAIL] Line {lineno}: unrecognized syntax: {stripped}")
             return False
 
     return found_diagram_start
