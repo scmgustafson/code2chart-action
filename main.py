@@ -19,7 +19,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Generate a MermaidJS diagram from a directory of code files using an LLM.",
         epilog="Example usage:\n"
-               "  python main.py ./src --output diagram.md --apend --debug",
+               "  python main.py ./src --output diagram.md --append --debug",
         formatter_class=argparse.RawTextHelpFormatter
     )
 
