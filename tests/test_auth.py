@@ -10,7 +10,8 @@ def test_check_for_api_key_raises(monkeypatch):
     import utilities.auth
 
     # Patch credentials fallback
-    if hasattr(utilities.auth, "credentials"):
+    # Only patch if credentials is not None
+    if utilities.auth.credentials is not None:
         monkeypatch.setattr(utilities.auth.credentials, "OPENAI_API_KEY", None)
 
     # Reload auth so it re-evaluates the patched credentials
