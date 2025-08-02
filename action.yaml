@@ -14,7 +14,10 @@ runs:
   using: "composite"
   steps:
     - run: pip install -r requirements.txt
+      shell: bash
+
     - run: python main.py ${{ inputs.args }}
+      shell: bash
       env:
         OPENAI_API_KEY: ${{ inputs.api_key }}
 
