@@ -1,10 +1,12 @@
 import config
 import prompts.templates as prompts
 import utilities.auth as auth
+import utilities.file_utils as file_utils
 
 import requests
 import logging
 import tiktoken # type: ignore
+import time
 
 OPENAI_API_KEY = auth.OPENAI_API_KEY
 OPENAI_MODEL = config.OPENAI_MODEL
@@ -67,13 +69,26 @@ def output_mermaid(data):
         
     prompt = prompts.output_mermaid_prompt(prompt_input)
 
-    logging.info("Prompting for Mermaid")
-    mermaid = prompt_model(prompt)
+    # Prompt GPT for mermaid then check if valid syntax, otherwise retry
+    retries = config.TOTAL_RETRIES
+    delay = config.RETRY_DELAY
+    attempt_counter = 0
+    while attempt_counter < retries:
+        logging.info("Prompting for Mermaid")
+        mermaid = str(prompt_model(prompt))
+        logging.debug(mermaid)
+        
+        valid = file_utils.is_mermaid_syntax(mermaid)
+        if valid:
+                logging.info(f"Mermaid output ready")
+                return mermaid
+        logging.warning(f"Mermaid output failed validation (attempt {attempt_counter}/{retries}), retrying...")
+        attempt_counter +=1
+        time.sleep(delay)
+    
+    raise Exception(f"Output Mermaid invalid after {retries}. Exiting")
 
-    logging.debug(mermaid)
 
-    logging.info(f"Mermaid output ready")
-    return mermaid
 
 def chunk_by_tokens(file_data_map, max_tokens=config.MAX_TOKENS, model=OPENAI_MODEL):
     """

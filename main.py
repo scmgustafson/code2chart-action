@@ -83,8 +83,4 @@ if __name__ == "__main__":
     file_utils.write_mermaid_to_file(destination_file, mermaid_output)
 
     #TODO check for valid mermaid syntax or retry that step
-    #TODO add step to raise exception if quota exceed
-    '''
-    2025-08-02 02:03:35,788 - ERROR - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
-    '''
     #TODO Setup everything need to put workflow on marketplace

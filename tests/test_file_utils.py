@@ -64,3 +64,17 @@ def test_write_mermaid_to_file_replaces_existing_mermaid_block(tmp_path, monkeyp
     assert "old_mermaid" not in content
     assert new_mermaid in content
     assert content.startswith("pre\nHEADER")
+
+def test_is_valid_mermaid_with_valid_mermaid():
+    sample_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../samples/nextjs_mermaid_example.md")
+    )
+    assert os.path.exists(sample_path), f"Sample Mermaid file not found: {sample_path}"
+
+    with open(sample_path, encoding="utf-8") as f:
+        valid_mermaid = f.read()
+
+    assert isinstance(valid_mermaid, str) and valid_mermaid.strip(), "File is empty"
+
+    result = file_utils.is_mermaid_syntax(valid_mermaid)
+    assert result, "Expected Mermaid to be valid"

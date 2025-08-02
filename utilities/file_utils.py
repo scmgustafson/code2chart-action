@@ -2,6 +2,46 @@ import config
 
 import logging
 import os
+from typing import Tuple
+
+def is_mermaid_syntax(text: str) -> bool:
+    lines = text.strip().splitlines()
+
+    # Strip ```mermaid ... ``` fencing
+    if lines[0].strip().startswith("```mermaid"):
+        lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+
+    found_diagram_start = False
+
+    for lineno, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if not stripped or config.COMMENT_DEF.match(stripped):
+            continue
+        if not found_diagram_start and config.DIAG_START.match(stripped):
+            found_diagram_start = True
+            continue
+        if not found_diagram_start and not stripped.startswith("%%{"):
+            print(f"[FAIL] Line {lineno}: expected diagram start, got: {stripped}")
+            return False
+
+        matched = any([
+            config.DIAG_START.match(stripped),
+            config.NODE_DEF.match(stripped),
+            config.EDGE_DEF.match(stripped),
+            config.SUBGRAPH_DEF.match(stripped),
+            config.SUBGRAPH_END.match(stripped),
+            config.CLASS_DEF.match(stripped),
+            config.CLASS_ASSIGN.match(stripped)
+        ])
+        if not matched:
+            print(f"[FAIL] Line {lineno}: unrecognized syntax: {stripped}")
+            return False
+
+    return found_diagram_start
+
+
 
 def get_file_data_map(folder_path: str):
     '''For all of the files in a directory to be ingested, write them to a dict if they aren't ignored
