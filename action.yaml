@@ -1,5 +1,6 @@
 name: Code2Chart
 description: "Generates a Mermaid diagram and updates README.md with latest diagram"
+author: scmgustafson
 
 inputs:
   api_key:
