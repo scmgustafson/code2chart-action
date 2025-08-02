@@ -1,6 +1,6 @@
 # Code2Chart Action — Auto-Generate MermaidJS Diagrams for Your Codebase
 
-[![GitHub Marketplace](https://img.shields.io/badge/GitHub-Marketplace-blue?logo=github)](https://github.com/marketplace/actions/code2chart)
+[![Code2Chart](https://img.shields.io/badge/GitHub-Marketplace-blue?logo=github)](https://github.com/marketplace/actions/code2chart)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Code2Chart** is a GitHub Action that uses OpenAI to automatically generate [MermaidJS](https://mermaid-js.github.io/) diagrams from your Python project source code. Visualize file structure, dependencies, and testing coverage — updated live with every PR or push.
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate Mermaid Diagram
-        uses: your-username/code2chart-action@v1
+        uses: scmgustafson/code2chart-action@1.0
         with:
           api_key: ${{ secrets.OPENAI_API_KEY }}
 ```
@@ -64,7 +64,7 @@ jobs:
 
 ```yaml
 - name: Generate Diagram and Append
-  uses: your-username/code2chart-action@v1
+  uses: scmgustafson/code2chart-action@1.0
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
     args: ". --append"
